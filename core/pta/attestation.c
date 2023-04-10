@@ -214,6 +214,8 @@ static TEE_Result sec_storage_obj_read(TEE_UUID *uuid, uint32_t storage_id,
 	struct tee_pobj *po = NULL;
 	size_t file_size = 0;
 	size_t read_len = 0;
+	struct ts_session *sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 
 	fops = tee_svc_storage_file_ops(storage_id);
 	if (!fops)
@@ -222,7 +224,7 @@ static TEE_Result sec_storage_obj_read(TEE_UUID *uuid, uint32_t storage_id,
 	if (obj_id_len > TEE_OBJECT_ID_MAX_LEN)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	res = tee_pobj_get(uuid, (void *)obj_id, obj_id_len, flags, false, fops,
+	res = tee_pobj_get(uuid, ta_sess->id, (void *)obj_id, obj_id_len, flags, false, fops,
 			   &po);
 	if (res)
 		return res;
@@ -258,6 +260,8 @@ static TEE_Result sec_storage_obj_write(TEE_UUID *uuid, uint32_t storage_id,
 	struct tee_file_handle *fh = NULL;
 	TEE_Result res = TEE_SUCCESS;
 	struct tee_pobj *po = NULL;
+	struct ts_session *sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 
 	fops = tee_svc_storage_file_ops(storage_id);
 	if (!fops)
@@ -266,7 +270,7 @@ static TEE_Result sec_storage_obj_write(TEE_UUID *uuid, uint32_t storage_id,
 	if (obj_id_len > TEE_OBJECT_ID_MAX_LEN)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	res = tee_pobj_get(uuid, (void *)obj_id, obj_id_len, flags, false,
+	res = tee_pobj_get(uuid, ta_sess->id, (void *)obj_id, obj_id_len, flags, false,
 			   fops, &po);
 	if (res)
 		return res;

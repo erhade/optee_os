@@ -15,6 +15,7 @@ struct tee_pobj {
 	TAILQ_ENTRY(tee_pobj) link;
 	uint32_t refcnt;
 	TEE_UUID uuid;
+	uint32_t session_id;
 	void *obj_id;
 	uint32_t obj_id_len;
 	uint32_t flags;
@@ -31,7 +32,7 @@ enum tee_pobj_usage {
 	TEE_POBJ_USAGE_ENUM,
 };
 
-TEE_Result tee_pobj_get(TEE_UUID *uuid, void *obj_id, uint32_t obj_id_len,
+TEE_Result tee_pobj_get(TEE_UUID *uuid, uint32_t session_id, void *obj_id, uint32_t obj_id_len,
 			uint32_t flags, enum tee_pobj_usage usage,
 			const struct tee_file_operations *fops,
 			struct tee_pobj **obj);

@@ -57,7 +57,7 @@ static TEE_Result tee_pobj_check_access(uint32_t oflags, uint32_t nflags)
 	return TEE_SUCCESS;
 }
 
-TEE_Result tee_pobj_get(TEE_UUID *uuid, void *obj_id, uint32_t obj_id_len,
+TEE_Result tee_pobj_get(TEE_UUID *uuid, uint32_t session_id, void *obj_id, uint32_t obj_id_len,
 			uint32_t flags, enum tee_pobj_usage usage,
 			const struct tee_file_operations *fops,
 			struct tee_pobj **obj)
@@ -83,12 +83,17 @@ TEE_Result tee_pobj_get(TEE_UUID *uuid, void *obj_id, uint32_t obj_id_len,
 			(*obj)->refcnt++;
 			goto out;
 		}
-		if ((*obj)->creating || (usage == TEE_POBJ_USAGE_CREATE &&
-					 !(flags & TEE_DATA_FLAG_OVERWRITE))) {
+		if ((*obj)->creating || 
+			(usage == TEE_POBJ_USAGE_CREATE && 
+			!(flags & TEE_DATA_FLAG_OVERWRITE)) || 
+			session_id != (*obj)->session_id) {
 			res = TEE_ERROR_ACCESS_CONFLICT;
 			goto out;
 		}
-		res = tee_pobj_check_access((*obj)->flags, flags);
+		if ((*obj)->flags == 0)
+			(*obj)->flags = flags;
+		else
+			res = tee_pobj_check_access((*obj)->flags, flags);
 		if (res == TEE_SUCCESS)
 			(*obj)->refcnt++;
 		goto out;
@@ -103,6 +108,7 @@ TEE_Result tee_pobj_get(TEE_UUID *uuid, void *obj_id, uint32_t obj_id_len,
 
 	o->refcnt = 1;
 	memcpy(&o->uuid, uuid, sizeof(TEE_UUID));
+	o->session_id = session_id;
 	o->flags = flags;
 	o->fops = fops;
 

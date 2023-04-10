@@ -662,6 +662,7 @@ static TEE_Result sec_storage_obj_read(unsigned long storage_id, char *obj_id,
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	spc = to_stmm_ctx(sess->ctx);
 	res = vm_check_access_rights(&spc->uctx,
 				     TEE_MEMORY_ACCESS_WRITE |
@@ -670,7 +671,7 @@ static TEE_Result sec_storage_obj_read(unsigned long storage_id, char *obj_id,
 	if (res != TEE_SUCCESS)
 		return res;
 
-	res = tee_pobj_get(&sess->ctx->uuid, obj_id, obj_id_len, flags,
+	res = tee_pobj_get(&sess->ctx->uuid, ta_sess->id, obj_id, obj_id_len, flags,
 			   false, fops, &po);
 	if (res != TEE_SUCCESS)
 		return res;
@@ -721,6 +722,7 @@ static TEE_Result sec_storage_obj_write(unsigned long storage_id, char *obj_id,
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	spc = to_stmm_ctx(sess->ctx);
 	res = vm_check_access_rights(&spc->uctx,
 				     TEE_MEMORY_ACCESS_READ |
@@ -729,7 +731,7 @@ static TEE_Result sec_storage_obj_write(unsigned long storage_id, char *obj_id,
 	if (res != TEE_SUCCESS)
 		return res;
 
-	res = tee_pobj_get(&sess->ctx->uuid, obj_id, obj_id_len, flags,
+	res = tee_pobj_get(&sess->ctx->uuid, ta_sess->id, obj_id, obj_id_len, flags,
 			   false, fops, &po);
 	if (res != TEE_SUCCESS)
 		return res;

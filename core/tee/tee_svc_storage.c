@@ -172,6 +172,7 @@ TEE_Result syscall_storage_obj_open(unsigned long storage_id, void *object_id,
 	const struct tee_file_operations *fops =
 			tee_svc_storage_file_ops(storage_id);
 	struct ts_session *sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
 	TEE_Result res = TEE_SUCCESS;
 	struct tee_pobj *po = NULL;
@@ -198,7 +199,7 @@ TEE_Result syscall_storage_obj_open(unsigned long storage_id, void *object_id,
 			goto err;
 	}
 
-	res = tee_pobj_get((void *)&sess->ctx->uuid, object_id,
+	res = tee_pobj_get((void *)&sess->ctx->uuid, ta_sess->id, object_id,
 			   object_id_len, flags, TEE_POBJ_USAGE_OPEN, fops,
 			   &po);
 	if (res != TEE_SUCCESS)
@@ -322,6 +323,7 @@ TEE_Result syscall_storage_obj_create(unsigned long storage_id, void *object_id,
 			tee_svc_storage_file_ops(storage_id);
 	struct ts_session *sess = ts_get_current_session();
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	struct tee_obj *attr_o = NULL;
 	TEE_Result res = TEE_SUCCESS;
 	struct tee_pobj *po = NULL;
@@ -346,7 +348,7 @@ TEE_Result syscall_storage_obj_create(unsigned long storage_id, void *object_id,
 			goto err;
 	}
 
-	res = tee_pobj_get((void *)&sess->ctx->uuid, object_id,
+	res = tee_pobj_get((void *)&sess->ctx->uuid, ta_sess->id, object_id,
 			   object_id_len, flags, TEE_POBJ_USAGE_CREATE,
 			   fops, &po);
 	if (res != TEE_SUCCESS)
@@ -477,6 +479,11 @@ TEE_Result syscall_storage_obj_del(unsigned long obj)
 	}
 
 	res = o->pobj->fops->remove(o->pobj);
+	if ((o->info.handleFlags & TEE_HANDLE_FLAG_PERSISTENT)) {
+		o->pobj->fops->close(&o->fh);
+		tee_pobj_release(o->pobj);
+		o->pobj = NULL;
+	}
 	tee_obj_close(utc, o);
 
 	return res;
@@ -488,6 +495,7 @@ TEE_Result syscall_storage_obj_rename(unsigned long obj, void *object_id,
 	const struct tee_file_operations *fops = NULL;
 	struct ts_session *sess = ts_get_current_session();
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	TEE_Result res = TEE_SUCCESS;
 	struct tee_pobj *po = NULL;
 	struct tee_obj *o = NULL;
@@ -526,7 +534,7 @@ TEE_Result syscall_storage_obj_rename(unsigned long obj, void *object_id,
 
 	/* reserve dest name */
 	fops = o->pobj->fops;
-	res = tee_pobj_get((void *)&sess->ctx->uuid, object_id,
+	res = tee_pobj_get((void *)&sess->ctx->uuid, ta_sess->id, object_id,
 			   object_id_len, TEE_DATA_FLAG_ACCESS_WRITE_META,
 			   TEE_POBJ_USAGE_RENAME, fops, &po);
 	if (res != TEE_SUCCESS)
@@ -636,6 +644,7 @@ TEE_Result syscall_storage_next_enum(unsigned long obj_enum,
 				     void *obj_id, uint64_t *len)
 {
 	struct ts_session *sess = ts_get_current_session();
+	struct tee_ta_session *ta_sess = to_ta_session(sess);
 	struct user_ta_ctx *utc = to_user_ta_ctx(sess->ctx);
 	struct tee_storage_enum *e = NULL;
 	struct tee_fs_dirent *d = NULL;
@@ -676,7 +685,7 @@ TEE_Result syscall_storage_next_enum(unsigned long obj_enum,
 		goto exit;
 	}
 
-	res = tee_pobj_get(&sess->ctx->uuid, d->oid, d->oidlen, 0,
+	res = tee_pobj_get(&sess->ctx->uuid, ta_sess->id, d->oid, d->oidlen, 0,
 			   TEE_POBJ_USAGE_ENUM, e->fops, &o->pobj);
 	if (res)
 		goto exit;
